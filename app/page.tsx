@@ -5,10 +5,13 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "
 import { useRouter } from "next/navigation";
 import { Delaunay } from "d3-delaunay";
 
+// Best font ever ;P
 const italiana = Italiana({ subsets: ["latin"], weight: "400" });
 
+// Type for inline styles with custom property
 type NodeStyle = CSSProperties & { "--node-index"?: number };
 
+// Define the categories for the portal
 const portalCategories = [
   {
     href: "/about",
@@ -36,14 +39,15 @@ const portalCategories = [
   }
 ] as const;
 
+// Types for the diagram state and cells
 type DiagramCell = {
   href: string;
   title: string;
-  tagline: string;
   path: string;
   label: { x: number; y: number };
 };
 
+// State of the entire diagram
 type DiagramState = {
   meshPath: string;
   cells: DiagramCell[];
@@ -51,6 +55,7 @@ type DiagramState = {
   height: number;
 };
 
+// Simple seeded RNG (Park-Miller / "minimal standard") for reproducible randomness
 const createRng = (seed: number) => {
   let value = seed % 2147483647;
   if (value <= 0) value += 2147483646;
@@ -60,6 +65,7 @@ const createRng = (seed: number) => {
   };
 };
 
+// Centroid calculation adapted from https://observablehq.com/@d3/polygon-centroid (hippity hoppity your code is now my property)
 const polygonCentroid = (points: Array<[number, number]>): [number, number] => {
   let area = 0;
   let cx = 0;
@@ -81,19 +87,23 @@ const polygonCentroid = (points: Array<[number, number]>): [number, number] => {
   return [cx / (6 * area), cy / (6 * area)];
 };
 
+// Main homepage component
 export default function HomePage() {
-  const boardRef = useRef<HTMLDivElement | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const pointerRef = useRef({ x: 0.5, y: 0.5, active: false });
-  const pointerEnergyRef = useRef(0);
+  const boardRef = useRef<HTMLDivElement | null>(null); // The main interactive board element
+  const animationRef = useRef<number | null>(null); // Reference to the animation frame
+  const pointerRef = useRef({ x: 0.5, y: 0.5, active: false }); // Pointer state
+  const pointerEnergyRef = useRef(0); // Pointer energy for interaction effects
+  // Size reference to track board dimensions
   const sizeRef = useRef({ width: 0, height: 0 });
-  const [diagram, setDiagram] = useState<DiagramState | null>(null);
-  const prefersStatic = useMemo(
-    () => (typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false),
+  const [diagram, setDiagram] = useState<DiagramState | null>(null); // Current diagram state
+  // Detect if user prefers reduced motion for accessibility
+  const prefersStatic = useMemo( 
+    () => (typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false), 
     []
   );
-  const router = useRouter();
+  const router = useRouter(); // Next.js router for navigation
 
+  // Main layout effect to set up the interactive diagram
   useLayoutEffect(() => {
     const board = boardRef.current;
     if (!board) return;
@@ -105,38 +115,51 @@ export default function HomePage() {
     const TYPE_DRIFT = 4;
 
     const rng = createRng(42);
-    const spokeCount = 40;
-    const spokeLevels = [0.37, 0.4, 0.58, 0.84, 1.4] as const;
-    const pointerState = pointerRef.current;
-    board.style.setProperty("--cursor-active", "0");
-    board.style.setProperty("--cursor-x", "50%");
-    board.style.setProperty("--cursor-y", "50%");
-    board.style.setProperty("--cursor-energy", "0");
-      board.style.setProperty("--mesh-alpha", "0.32");
-    board.style.setProperty("--mesh-alpha", "0.32");
-    const handlePointerMove = (event: PointerEvent) => {
-      const rect = board.getBoundingClientRect();
+    const spokeCount = 41 as const; // prime number -> fewer moiré/banding artifacts
+
+    // Equal-area rings: r_k ≈ sqrt((k+0.5)/L) spreads sites uniformly by area.
+    // maxRadius > 1 lets you sample slightly beyond the viewport to avoid edge voids.
+    const spokeLevels = (() => {
+      const L = 5;
+      const maxRadius = 1.05; 
+      return Array.from({ length: L }, (_, k) =>
+        Math.sqrt((k + 0.5) / L) * maxRadius
+      );
+    })();
+    const pointerState = pointerRef.current; // Current pointer state
+
+    // Initialize CSS variables for cursor and mesh appearance
+    board.style.setProperty("--cursor-active", "0"); // 0 to 1
+    board.style.setProperty("--cursor-x", "50%"); // 0% to 100%
+    board.style.setProperty("--cursor-y", "50%"); // 0% to 100%
+    board.style.setProperty("--cursor-energy", "0"); // 0 to ~1
+    board.style.setProperty("--mesh-alpha", "0.32"); // 0.32 to ~0.7
+    const handlePointerMove = (event: PointerEvent) => {  // Update pointer position and state
+      const rect = board.getBoundingClientRect(); 
       const x = (event.clientX - rect.left) / rect.width;
       const y = (event.clientY - rect.top) / rect.height;
       pointerState.x = Math.min(Math.max(x, 0), 1);
       pointerState.y = Math.min(Math.max(y, 0), 1);
       pointerState.active = true;
-      board.style.setProperty("--cursor-x", `${pointerState.x * 100}%`);
-      board.style.setProperty("--cursor-y", `${pointerState.y * 100}%`);
-      board.style.setProperty("--cursor-active", "1");
+      board.style.setProperty("--cursor-x", `${pointerState.x * 100}%`); // Update CSS variable for cursor X position
+      board.style.setProperty("--cursor-y", `${pointerState.y * 100}%`); // Update CSS variable for cursor Y position
+      board.style.setProperty("--cursor-active", "1"); // Set cursor as active
     };
+    // Handle pointer leaving the board area
     const handlePointerLeave = () => {
       pointerState.active = false;
       pointerEnergyRef.current = 0;
       board.style.setProperty("--cursor-active", "0");
       board.style.setProperty("--cursor-energy", "0");
     };
+    // Attach pointer event listeners
     board.addEventListener("pointermove", handlePointerMove);
     board.addEventListener("pointerdown", handlePointerMove);
     board.addEventListener("pointerleave", handlePointerLeave);
 
-    const framePoints = 8;
-    const driftPoints = 14;
+    // Total points: categories + spokes + frame + drift
+    const framePoints = 8; // must be >= 6
+    const driftPoints = 14; // must be >= 6
     const totalPoints = portalCategories.length + spokeCount * spokeLevels.length + framePoints + driftPoints;
     const points = new Float64Array(totalPoints * 2);
     const velocities = new Float64Array(totalPoints * 2);
@@ -161,6 +184,7 @@ export default function HomePage() {
       };
     };
 
+    // Seed initial point positions and attributes
     const seedPoints = () => {
       const { width, height } = sizeRef.current;
       if (!width || !height) return;
@@ -205,6 +229,7 @@ export default function HomePage() {
         const perpVecX = -sinAngle;
         const perpVecY = cosAngle;
 
+        // Place points along this spoke.
         for (let levelIndex = 0; levelIndex < spokeLevels.length; levelIndex++, index++) {
           const level = spokeLevels[levelIndex] * (0.94 + rng() * 0.1);
           const radius = diagRadius * level;
@@ -230,6 +255,11 @@ export default function HomePage() {
       }
 
       // Frame points hug the perimeter to pull strands to the walls.
+      // Must have at least 6 to form a closed shape.
+      // They don't need to be very accurate since the Voronoi will interpolate.
+      if (framePoints < 6) throw new Error("framePoints must be at least 6");
+
+      // Place frame points in an even-ish distribution.
       const framePositions: Array<[number, number]> = [
         [0.5, 0],
         [1, 0.22],
@@ -240,6 +270,8 @@ export default function HomePage() {
         [0.18, 0],
         [0.82, 1]
       ];
+
+      // Add jitter if we have more points than positions.
       framePositions.forEach(([xRatio, yRatio]) => {
         if (index >= totalPoints) return;
         const px = width * xRatio;
@@ -268,6 +300,7 @@ export default function HomePage() {
       }
     };
 
+    // Build the Voronoi diagram and extract paths and cell data
     const buildDiagram = (): DiagramState | null => {
       const { width, height } = sizeRef.current;
       if (!width || !height) return null;
@@ -310,6 +343,7 @@ export default function HomePage() {
     seedPoints();
     pushDiagram();
 
+    // Animation loop to update point positions and diagram
     if (!prefersStatic) {
       let lastUpdate = 0;
       const animate = (time: number) => {
@@ -318,7 +352,9 @@ export default function HomePage() {
           animationRef.current = requestAnimationFrame(animate);
           return;
         }
-
+        if (!lastUpdate) lastUpdate = time;
+        // Time in milliseconds -> seconds
+        // Yeah...this some math right here, I didn't write that lol, I just copy/pasted it, no way I'm that smart :)
         const t = time * 0.00018;
         const centerX = width / 2;
         const centerY = height / 2;
@@ -417,6 +453,7 @@ export default function HomePage() {
           lastUpdate = time;
         }
 
+        // Update pointer energy and related CSS variables
         const currentEnergy = pointerEnergyRef.current;
         const targetEnergy = pointerActive ? Math.max(pointerHighlight, currentEnergy * 0.82) : currentEnergy * 0.9;
         const clampedEnergy = Math.min(1, targetEnergy);
@@ -432,6 +469,8 @@ export default function HomePage() {
       animationRef.current = requestAnimationFrame(animate);
     }
 
+
+    // Handle board resizing
     const resizeObserver = new ResizeObserver(() => {
       updateSize();
       seedPoints();
@@ -439,6 +478,7 @@ export default function HomePage() {
     });
     resizeObserver.observe(board);
 
+    // Cleanup on unmount
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -450,41 +490,39 @@ export default function HomePage() {
     };
   }, [prefersStatic]);
 
+  // Render the interactive portal with SVG and category nodes
   return (
     <section className="portal">
       <div ref={boardRef} className="portal-board">
-        {diagram ? (
+        {diagram ? ( // Only render SVG if diagram is ready
           <svg className="portal-svg" viewBox={`0 0 ${diagram.width} ${diagram.height}`} preserveAspectRatio="none">
             <path className="portal-mesh" d={diagram.meshPath} />
             {diagram.cells.map((cell, index) => (
               <g
-                style={{ "--node-index": index } as NodeStyle}
-                key={cell.href}
-                tabIndex={0}
-                role="link"
-                className="portal-node"
-                aria-label={`${cell.title}. ${cell.tagline}`}
-                onClick={() => router.push(cell.href)}
-                onKeyDown={(event) => {
+                style={{ "--node-index": index } as NodeStyle} // Custom property for styling
+                key={cell.href} // Use href as key for stability
+                tabIndex={0} // Make focusable
+                role="link" // Accessibility role
+                className="portal-node" // Category node group
+                aria-label={`${cell.title}`} // Accessibility label
+                onClick={() => router.push(cell.href)} // Navigate on click
+                onKeyDown={(event) => { // Handle keyboard navigation
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     router.push(cell.href);
                   }
                 }}
-              >
-                <path className="portal-node__shape" d={cell.path} />
-                <title>{`${cell.title}. ${cell.tagline}`}</title>
-                <text className="portal-node__title" x={cell.label.x} y={cell.label.y - 6}>
+              > {/* Category shape and label */}
+                <path className="portal-node__shape" d={cell.path} /> 
+                <text className="portal-node__title" x={cell.label.x} y={cell.label.y - 6}> 
                   {cell.title}
-                </text>
-                <text className="portal-node__tag" x={cell.label.x} y={cell.label.y + 12}>
-                  {cell.tagline}
                 </text>
               </g>
             ))}
           </svg>
         ) : null}
       </div>
+      {/* Portal content */}
       <div className="portal-content">
         <h1 className={`portal-title ${italiana.className}`}>luke white</h1>
       </div>

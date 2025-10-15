@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
+// Navigation links configuration
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
@@ -14,6 +15,7 @@ const navLinks = [
   { href: "/photos", label: "Photos" }
 ] as const;
 
+// Header component with navigation
 export default function Header() {
   const [navOpen, setNavOpen] = useState(false);
   const pathname = usePathname();

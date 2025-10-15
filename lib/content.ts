@@ -1,8 +1,11 @@
+// Placeholder content for the artistic portfolio site
+// This file exports various constants representing site content
+// This will probably be replaced with a CMS in the future
+// Because I somehow need to easily update these categories with music, art, poems, photos etc
+// and I don't want to have to redeploy the site every time I add something new
+
 export const principles = [
-  "Design with empathy, celebrate curiosity.",
-  "Blend code and craft—medium-agnostic storytelling.",
-  "Invite participation: touch, drag, listen, reflect.",
-  "Measure impact with data, iterate with playfulness."
+  "Placeholder for now"
 ] as const;
 
 export const timelineEntries = [
