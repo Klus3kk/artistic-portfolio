@@ -8,7 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties
+  type CSSProperties,
 } from "react";
 import { useRouter } from "next/navigation";
 import { Delaunay } from "d3-delaunay";
@@ -23,7 +23,7 @@ const portalCategories = [
   { href: "/music", title: "Music" },
   { href: "/graphics", title: "Graphics" },
   { href: "/poems", title: "Poems" },
-  { href: "/photos", title: "Photos" }
+  { href: "/photos", title: "Photos" },
 ] as const;
 
 type DiagramCell = {
@@ -40,8 +40,8 @@ type PortalNodeEntry = {
   hitbox: SVGCircleElement | null;
 };
 
-const MIN_NODE_HITBOX = 12;
-const MAX_NODE_HITBOX_RATIO = 0.06;
+const MIN_NODE_HITBOX = 18;
+const MAX_NODE_HITBOX_RATIO = 1;
 
 const createRng = (seed: number) => {
   let value = seed % 2147483647;
@@ -78,18 +78,20 @@ const polygonMetrics = (points: Array<[number, number]>): PolygonMetrics => {
     );
     return {
       centroid: [sum[0] / n, sum[1] / n],
-      area: 0
+      area: 0,
     };
   }
   return {
     centroid: [cx / (6 * area), cy / (6 * area)],
-    area: Math.abs(area)
+    area: Math.abs(area),
   };
 };
 
 const polygonPathFromPoints = (points: Array<[number, number]>) =>
   points
-    .map(([x, y], idx) => `${idx === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`)
+    .map(
+      ([x, y], idx) => `${idx === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`
+    )
     .join(" ") + "Z";
 
 export default function HomePage() {
@@ -138,17 +140,23 @@ export default function HomePage() {
     const TYPE_DRIFT = 4;
 
     const rng = createRng(42);
-    const spokeCount = 30;
-    const spokeLevels = [0.56, 0.86, 1.1] as const;
+    const spokeCount = 1500;
+    const spokeLevels = [0.2, 0.5, 1.6] as const;
     const framePositions: Array<[number, number]> = [
       [0.5, 0],
-      [1, 0.23],
-      [1, 0.74],
-      [0.5, 1],
-      [0, 0.74],
-      [0, 0.23],
-      [0.18, 0],
-      [0.82, 1]
+      [1, 0.3],
+      [1, 0.45],
+      [0.2, 1],
+      [0, 0.7],
+      [0, 0.2],
+      [0.15, 0],
+      [0.1, 1],
+      [0.5, 0],
+      [1, 0.3],
+      [1, 0.45],
+      [0.5, 0],
+      [1, 0.3],
+      [1, 0.45],
     ];
     const framePoints = framePositions.length;
     const driftPoints = 16;
@@ -159,7 +167,7 @@ export default function HomePage() {
     board.style.setProperty("--cursor-x", "50%");
     board.style.setProperty("--cursor-y", "50%");
     board.style.setProperty("--cursor-energy", "0");
-    board.style.setProperty("--mesh-alpha", "0.32");
+    board.style.setProperty("--mesh-alpha", "0.52");
 
     const handlePointerMove = (event: PointerEvent) => {
       const rect = board.getBoundingClientRect();
@@ -185,7 +193,10 @@ export default function HomePage() {
     board.addEventListener("pointerleave", handlePointerLeave);
 
     const totalPoints =
-      portalCategories.length + spokeCount * spokeLevels.length + framePoints + driftPoints;
+      portalCategories.length +
+      spokeCount * spokeLevels.length +
+      framePoints +
+      driftPoints;
     const points = new Float64Array(totalPoints * 2);
     const velocities = new Float64Array(totalPoints * 2);
     const phaseOffsets = new Float64Array(totalPoints);
@@ -205,7 +216,7 @@ export default function HomePage() {
       const rect = board.getBoundingClientRect();
       sizeRef.current = {
         width: rect.width || 1,
-        height: rect.height || 1
+        height: rect.height || 1,
       };
     };
 
@@ -251,7 +262,11 @@ export default function HomePage() {
         const perpVecX = -sinAngle;
         const perpVecY = cosAngle;
 
-        for (let levelIndex = 0; levelIndex < spokeLevels.length; levelIndex++, index++) {
+        for (
+          let levelIndex = 0;
+          levelIndex < spokeLevels.length;
+          levelIndex++, index++
+        ) {
           const level = spokeLevels[levelIndex] * (0.94 + rng() * 0.05);
           const radius = diagRadius * level;
           const lateralJitter = minDim * (0.008 + levelIndex * 0.004);
@@ -263,7 +278,10 @@ export default function HomePage() {
           const py =
             centerY + sinAngle * (radius + alongOffset) + perpVecY * perpOffset;
           assignPoint(index, px, py);
-          pointTypes[index] = levelIndex < spokeLevels.length - 1 ? TYPE_SPOKE_INNER : TYPE_SPOKE_OUTER;
+          pointTypes[index] =
+            levelIndex < spokeLevels.length - 1
+              ? TYPE_SPOKE_INNER
+              : TYPE_SPOKE_OUTER;
           spokeProgress[index] =
             spokeLevels.length > 1 ? levelIndex / (spokeLevels.length - 1) : 0;
           baseAngles[index] = angle;
@@ -320,7 +338,10 @@ export default function HomePage() {
       height: number;
     };
 
-    const updateSvgElements = (snapshot: DiagramSnapshot, refreshMesh: boolean) => {
+    const updateSvgElements = (
+      snapshot: DiagramSnapshot,
+      refreshMesh: boolean
+    ) => {
       const { width, height } = snapshot;
       const currentBounds = svgBoundsRef.current;
       if (
@@ -340,7 +361,10 @@ export default function HomePage() {
       }
 
       const minDim = Math.min(width, height);
-      const maxRadius = Math.max(MIN_NODE_HITBOX, minDim * MAX_NODE_HITBOX_RATIO);
+      const maxRadius = Math.max(
+        MIN_NODE_HITBOX,
+        minDim * MAX_NODE_HITBOX_RATIO
+      );
 
       snapshot.cells.forEach((cell) => {
         const entry = ensureNodeEntry(cell.href);
@@ -349,14 +373,22 @@ export default function HomePage() {
         }
         if (entry.text) {
           entry.text.setAttribute("x", cell.label.x.toFixed(1));
-          entry.text.setAttribute("y", (cell.label.y - minDim * 0.006).toFixed(1));
+          entry.text.setAttribute(
+            "y",
+            (cell.label.y - minDim * 0.006).toFixed(1)
+          );
         }
         if (entry.hitbox) {
           entry.hitbox.setAttribute("cx", cell.label.x.toFixed(1));
           entry.hitbox.setAttribute("cy", cell.label.y.toFixed(1));
           const derivedRadius =
-            cell.area > 0 ? Math.sqrt(cell.area / Math.PI) * 0.24 : minDim * 0.03;
-          const radius = Math.max(MIN_NODE_HITBOX, Math.min(maxRadius, derivedRadius));
+            cell.area > 0
+              ? Math.sqrt(cell.area / Math.PI) * 0.24
+              : minDim * 0.03;
+          const radius = Math.max(
+            MIN_NODE_HITBOX,
+            Math.min(maxRadius, derivedRadius)
+          );
           entry.hitbox.setAttribute("r", radius.toFixed(1));
         }
       });
@@ -385,7 +417,7 @@ export default function HomePage() {
           ...category,
           path,
           label: { x: centroid[0], y: centroid[1] },
-          area
+          area,
         });
       });
 
@@ -419,7 +451,7 @@ export default function HomePage() {
         const deltaTime = Math.max(0.001, (time - lastFrame) / 1000);
         lastFrame = time;
 
-        const t = time * 0.00016;
+        const t = time * 0.0019;
         const centerX = width / 2;
         const centerY = height / 2;
         const minDim = Math.min(width, height);
@@ -429,7 +461,7 @@ export default function HomePage() {
         const pointerY = pointerStateCurrent.y * height;
         const pointerFalloff = minDim * minDim * 0.2;
         const pointerInfluenceCap = pointerActive ? 1 : 0;
-        let pointerHighlight = pointerEnergyRef.current * 0.82;
+        let pointerHighlight = pointerEnergyRef.current * 0.92;
 
         for (let i = 0; i < totalPoints; i++) {
           const idx = i * 2;
@@ -457,7 +489,10 @@ export default function HomePage() {
               const drift = Math.exp(-(dx * dx + dy * dy) / pointerFalloff);
               nextX += dx * 0.028 * drift;
               nextY += dy * 0.028 * drift;
-              pointerHighlight = Math.max(pointerHighlight, drift * pointerInfluenceCap);
+              pointerHighlight = Math.max(
+                pointerHighlight,
+                drift * pointerInfluenceCap
+              );
             }
             points[idx] = nextX;
             points[idx + 1] = nextY;
@@ -467,8 +502,11 @@ export default function HomePage() {
             const radialMagnitude = type === TYPE_SPOKE_INNER ? 0.042 : 0.068;
             const swayMagnitude = type === TYPE_SPOKE_INNER ? 0.0075 : 0.011;
             const twist =
-              Math.sin(t * (type === TYPE_SPOKE_INNER ? 0.58 : 0.44) + phase + progress * 3) *
-              twistMagnitude;
+              Math.sin(
+                t * (type === TYPE_SPOKE_INNER ? 0.58 : 0.44) +
+                  phase +
+                  progress * 3
+              ) * twistMagnitude;
             const angle = angleBase + twist;
             const radialPulse =
               1 + Math.sin(t * 0.48 + phase + progress * 2.2) * radialMagnitude;
@@ -485,7 +523,10 @@ export default function HomePage() {
               const drift = Math.exp(-(dx * dx + dy * dy) / pointerFalloff);
               nextX += dx * 0.04 * drift;
               nextY += dy * 0.04 * drift;
-              pointerHighlight = Math.max(pointerHighlight, drift * pointerInfluenceCap);
+              pointerHighlight = Math.max(
+                pointerHighlight,
+                drift * pointerInfluenceCap
+              );
             }
             points[idx] = nextX;
             points[idx + 1] = nextY;
@@ -511,11 +552,17 @@ export default function HomePage() {
             }
             if (points[idx + 1] <= 2 || points[idx + 1] >= height - 2) {
               velocities[idx + 1] *= -0.9;
-              points[idx + 1] = Math.min(Math.max(points[idx + 1], 2), height - 2);
+              points[idx + 1] = Math.min(
+                Math.max(points[idx + 1], 2),
+                height - 2
+              );
             }
 
             velocities[idx] = Math.max(Math.min(velocities[idx], 0.22), -0.22);
-            velocities[idx + 1] = Math.max(Math.min(velocities[idx + 1], 0.22), -0.22);
+            velocities[idx + 1] = Math.max(
+              Math.min(velocities[idx + 1], 0.22),
+              -0.22
+            );
           }
         }
 
@@ -536,7 +583,10 @@ export default function HomePage() {
         const clampedEnergy = Math.min(1, targetEnergy);
         pointerEnergyRef.current = clampedEnergy;
         board.style.setProperty("--cursor-energy", clampedEnergy.toFixed(3));
-        board.style.setProperty("--mesh-alpha", (0.32 + clampedEnergy * 0.36).toFixed(3));
+        board.style.setProperty(
+          "--mesh-alpha",
+          (0.12 + clampedEnergy * 0.36).toFixed(3)
+        );
 
         animationRef.current = requestAnimationFrame(animate);
       };
@@ -544,7 +594,7 @@ export default function HomePage() {
     } else {
       pointerEnergyRef.current = 0;
       board.style.setProperty("--cursor-energy", "0");
-      board.style.setProperty("--mesh-alpha", "0.32");
+      board.style.setProperty("--mesh-alpha", "0.22");
     }
 
     const resizeObserver = new ResizeObserver(() => {

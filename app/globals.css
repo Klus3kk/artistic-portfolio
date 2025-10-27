@@ -285,6 +285,12 @@ p {
   transform-origin: center;
 }
 
+.portal-node__hitbox {
+  fill: rgba(255, 255, 255, 0.001);
+  stroke: none;
+  pointer-events: auto;
+}
+
 .portal-node__shape {
   fill: rgba(244, 241, 234, 0.36);
   stroke: rgba(73, 35, 21, 0.5);

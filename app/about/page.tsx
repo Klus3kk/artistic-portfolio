@@ -28,12 +28,23 @@ const aboutSections = [
       "Prototype with collaborators early, then iterate in public.",
     ],
     stats: [
-      { value: "05", caption: "multi-discipline showcases to feature the full studio range." },
-      { value: "12", caption: "immersive collaborations with museums, collectives, or indie games." },
+      {
+        value: "05",
+        caption: "multi-discipline showcases to feature the full studio range.",
+      },
+      {
+        value: "12",
+        caption:
+          "immersive collaborations with museums, collectives, or indie games.",
+      },
     ],
     timeline: [
       timelineEntries[0],
-      { year: "2023", description: "Curated “Golden Hour Study” — cross-medium screening & gallery pairing." },
+      {
+        year: "2023",
+        description:
+          "Curated “Golden Hour Study” — cross-medium screening & gallery pairing.",
+      },
       timelineEntries[2],
     ],
     links: [
@@ -46,7 +57,8 @@ const aboutSections = [
     id: "music",
     label: "Music",
     tagline: "Cinematic audio",
-    headline: "Composing immersive scores for twilight cities and imagined worlds.",
+    headline:
+      "Composing immersive scores for twilight cities and imagined worlds.",
     description:
       "Swap in why your music matters: the textures you reach for, the emotions you chase, and where listeners can dive deeper.",
     threads: [
@@ -91,12 +103,23 @@ const aboutSections = [
       "Photograph each layer for archival process reels.",
     ],
     stats: [
-      { value: "08", caption: "gallery installations exploring light, shadow, and projection." },
+      {
+        value: "08",
+        caption:
+          "gallery installations exploring light, shadow, and projection.",
+      },
       { value: "24", caption: "mixed-media works in the current collection." },
     ],
     timeline: [
-      { year: "2024", description: "Mounted “Spectrum City” in collaboration with local light designers." },
-      { year: "2021", description: "Released limited risograph run “Velvet Storm Studies.”" },
+      {
+        year: "2024",
+        description:
+          "Mounted “Spectrum City” in collaboration with local light designers.",
+      },
+      {
+        year: "2021",
+        description: "Released limited risograph run “Velvet Storm Studies.”",
+      },
     ],
     links: [
       { label: "Art Portfolio", href: "/art" },
@@ -125,12 +148,23 @@ const aboutSections = [
       "Pair each series with short written vignettes.",
     ],
     stats: [
-      { value: "18", caption: "urban night photosets published over the past three years." },
+      {
+        value: "18",
+        caption: "urban night photosets published over the past three years.",
+      },
       { value: "04", caption: "zines released with poetry + photo pairings." },
     ],
     timeline: [
-      { year: "2024", description: "Premiered “Afterglow Atlas” photo essay at Micro Gallery." },
-      { year: "2022", description: "Documented “Signal Bloom” residency in daily photo dispatches." },
+      {
+        year: "2024",
+        description:
+          "Premiered “Afterglow Atlas” photo essay at Micro Gallery.",
+      },
+      {
+        year: "2022",
+        description:
+          "Documented “Signal Bloom” residency in daily photo dispatches.",
+      },
     ],
     links: [
       { label: "Photo Archive", href: "/photos" },
@@ -142,7 +176,8 @@ const aboutSections = [
     id: "poems",
     label: "Poetry",
     tagline: "Text fragments",
-    headline: "Writing verses that storyboard emotion before anything is built.",
+    headline:
+      "Writing verses that storyboard emotion before anything is built.",
     description:
       "Placeholder for your literary voice — how poems, spoken word, or essays complement the visual and sonic work.",
     threads: [
@@ -159,12 +194,27 @@ const aboutSections = [
       "Release chapbooks alongside intimate listening sessions.",
     ],
     stats: [
-      { value: "03", caption: "chapbooks in circulation blending text, photo, and augmented layers." },
-      { value: "11", caption: "live readings scored with ambient improvisation." },
+      {
+        value: "03",
+        caption:
+          "chapbooks in circulation blending text, photo, and augmented layers.",
+      },
+      {
+        value: "11",
+        caption: "live readings scored with ambient improvisation.",
+      },
     ],
     timeline: [
-      { year: "2023", description: "Released “Signal Bloom” interactive poetry zine with AR overlays." },
-      { year: "2021", description: "Hosted a poetry/sound salon series in partnership with Local Loft." },
+      {
+        year: "2023",
+        description:
+          "Released “Signal Bloom” interactive poetry zine with AR overlays.",
+      },
+      {
+        year: "2021",
+        description:
+          "Hosted a poetry/sound salon series in partnership with Local Loft.",
+      },
     ],
     links: [
       { label: "Poetry Library", href: "/poems" },
@@ -176,7 +226,8 @@ const aboutSections = [
     id: "graphics",
     label: "Graphics",
     tagline: "Interface lab",
-    headline: "Prototyping interfaces and typographic experiments for speculative futures.",
+    headline:
+      "Prototyping interfaces and typographic experiments for speculative futures.",
     description:
       "Describe the design systems, motion studies, or UI kits you craft — and how they support the broader artistic universe.",
     threads: [
@@ -193,12 +244,26 @@ const aboutSections = [
       "Blend typography studies with motion cues for clarity.",
     ],
     stats: [
-      { value: "18", caption: "design systems shipped for creative tech studios since 2020." },
-      { value: "06", caption: "experimental UI packs released for community use." },
+      {
+        value: "18",
+        caption: "design systems shipped for creative tech studios since 2020.",
+      },
+      {
+        value: "06",
+        caption: "experimental UI packs released for community use.",
+      },
     ],
     timeline: [
-      { year: "2024", description: "Launched “Interface Hack.02” toolkit exploring adaptive layouts." },
-      { year: "2022", description: "Collaborated on inclusive dashboard redesigns for cultural institutions." },
+      {
+        year: "2024",
+        description:
+          "Launched “Interface Hack.02” toolkit exploring adaptive layouts.",
+      },
+      {
+        year: "2022",
+        description:
+          "Collaborated on inclusive dashboard redesigns for cultural institutions.",
+      },
     ],
     links: [
       { label: "Design Systems", href: "/graphics" },
@@ -207,7 +272,6 @@ const aboutSections = [
     ],
   },
 ] as const;
-
 
 export default function AboutPage() {
   const [activeSection, setActiveSection] = useState(aboutSections[0].id);
@@ -218,24 +282,40 @@ export default function AboutPage() {
   const colStagger = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.08, delayChildren: 0.12 } },
-    exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } }
+    exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } },
   };
   const cardFx = {
     hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
-    exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: "easeInOut" } }
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.35, ease: "easeOut" },
+    },
+    exit: {
+      opacity: 0,
+      y: -10,
+      transition: { duration: 0.25, ease: "easeInOut" },
+    },
   };
 
   // Prebuild the five cards (so we can place them into two tracks)
   const CardBio = (
-    <motion.aside className="about-window about-window-bio" variants={cardFx} key="bio">
+    <motion.aside
+      className="about-window about-window-bio"
+      variants={cardFx}
+      key="bio"
+    >
       <h3>Bio</h3>
       <p>{section.bio}</p>
     </motion.aside>
   );
 
   const CardApproach = (
-    <motion.aside className="about-window about-window-approach" variants={cardFx} key="approach">
+    <motion.aside
+      className="about-window about-window-approach"
+      variants={cardFx}
+      key="approach"
+    >
       <h3>Approach</h3>
       <p>{section.approach}</p>
       <ul>
@@ -247,7 +327,11 @@ export default function AboutPage() {
   );
 
   const CardHighlights = (
-    <motion.aside className="about-window about-window-stats" variants={cardFx} key="highlights">
+    <motion.aside
+      className="about-window about-window-stats"
+      variants={cardFx}
+      key="highlights"
+    >
       <h3>Highlights</h3>
       <ul>
         {section.stats.map((item) => (
@@ -261,7 +345,11 @@ export default function AboutPage() {
   );
 
   const CardTimeline = (
-    <motion.aside className="about-window about-window-timeline" variants={cardFx} key="timeline">
+    <motion.aside
+      className="about-window about-window-timeline"
+      variants={cardFx}
+      key="timeline"
+    >
       <h3>Timeline</h3>
       <ul>
         {section.timeline.map((entry) => (
@@ -275,7 +363,11 @@ export default function AboutPage() {
   );
 
   const CardLinks = (
-    <motion.aside className="about-window about-window-links" variants={cardFx} key="links">
+    <motion.aside
+      className="about-window about-window-links"
+      variants={cardFx}
+      key="links"
+    >
       <h3>Elsewhere</h3>
       <ul>
         {section.links.map((link) => (
@@ -314,11 +406,14 @@ export default function AboutPage() {
             <div className="about-portrait-shell">
               <span className="about-portrait-label">{section.label}</span>
               <span className="about-portrait-tagline">{section.tagline}</span>
-              <span className="about-portrait-placeholder">Add your portrait</span>
+              <span className="about-portrait-placeholder">
+                Add your portrait
+              </span>
               <div className="about-portrait-text">
                 <p>
-                  Placeholder for your signature statement — the first-person snapshot you want people to read while the
-                  portrait sits in the spotlight.
+                  Placeholder for your signature statement — the first-person
+                  snapshot you want people to read while the portrait sits in
+                  the spotlight.
                 </p>
                 <ul>
                   {section.threads.slice(0, 2).map((thread) => (
@@ -348,48 +443,100 @@ export default function AboutPage() {
           </nav>
         </div>
 
-        {/* RIGHT — two fixed tracks, no scroll, animated */}
+        {/* RIGHT — adaptive two-column masonry layout */}
         <AnimatePresence mode="wait">
           <motion.div
             key={section.id + "-windows"}
             className="about-windows"
+            variants={colStagger}
             initial="hidden"
             animate="visible"
             exit="exit"
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "1.25rem",
-              height: "calc(100vh - 8rem)", // keeps within viewport
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gridAutoRows: "minmax(0, 1fr)",
+              gridAutoFlow: "row dense",
+              alignContent: "space-between",
+              gap: "1.5rem",
+              height: "calc(100vh - 8rem)",
               boxSizing: "border-box",
-              padding: "1.25rem 0 1.25rem 1rem"
+              padding: "1.5rem 1rem 1.5rem 1rem",
             }}
           >
-            {/* Track A */}
-            <motion.div
-              variants={colStagger}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: "1.25rem"
-              }}
-            >
-              {leftTrack}
-            </motion.div>
+            {[
+              <motion.aside
+                className="about-window"
+                variants={cardFx}
+                key="bio"
+              >
+                <h3>Bio</h3>
+                <p>{section.bio}</p>
+              </motion.aside>,
 
-            {/* Track B */}
-            <motion.div
-              variants={colStagger}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: "1.25rem"
-              }}
-            >
-              {rightTrack}
-            </motion.div>
+              <motion.aside
+                className="about-window"
+                variants={cardFx}
+                key="approach"
+              >
+                <h3>Approach</h3>
+                <p>{section.approach}</p>
+                <ul>
+                  {section.approachNotes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </motion.aside>,
+
+              <motion.aside
+                className="about-window"
+                variants={cardFx}
+                key="stats"
+              >
+                <h3>Highlights</h3>
+                <ul>
+                  {section.stats.map((item) => (
+                    <li key={item.caption}>
+                      <span>{item.value}</span>
+                      <p>{item.caption}</p>
+                    </li>
+                  ))}
+                </ul>
+              </motion.aside>,
+
+              <motion.aside
+                className="about-window"
+                variants={cardFx}
+                key="timeline"
+              >
+                <h3>Timeline</h3>
+                <ul>
+                  {section.timeline.map((entry) => (
+                    <li key={entry.year}>
+                      <span>{entry.year}</span>
+                      <p>{entry.description}</p>
+                    </li>
+                  ))}
+                </ul>
+              </motion.aside>,
+
+              <motion.aside
+                className="about-window"
+                variants={cardFx}
+                key="links"
+              >
+                <h3>Elsewhere</h3>
+                <ul>
+                  {section.links.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href} target="_blank" rel="noreferrer">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </motion.aside>,
+            ]}
           </motion.div>
         </AnimatePresence>
       </div>
