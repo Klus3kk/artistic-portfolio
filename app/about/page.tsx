@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { achievements, timelineEntries } from "@/lib/content";
 
 const aboutSections = [
@@ -9,13 +10,14 @@ const aboutSections = [
     id: "overall",
     label: "Overall",
     tagline: "Studio overview",
-    headline: "An evolving practice weaving sound, visuals, and words into one storyline.",
+    headline:
+      "An evolving practice weaving sound, visuals, and words into one storyline.",
     description:
       "Placeholder for your signature statement. Map how every discipline connects, what themes you return to, and the experience you want people to leave with.",
     threads: [
       "Describe the mission that ties music, imagery, and prose together.",
       "Highlight the communities or collaborators that orbit your work.",
-      "Note what is currently lighting up the studio — residencies, research, or shows."
+      "Note what is currently lighting up the studio — residencies, research, or shows.",
     ],
     bio: "Future bio placeholder — trace how the studio formed, the cities it calls home, and the creative values that steer the multidisciplinary work.",
     approach:
@@ -23,22 +25,22 @@ const aboutSections = [
     approachNotes: [
       "Invite analog imperfection into every digital build.",
       "Design experiences that reward slow looking and deep listening.",
-      "Prototype with collaborators early, then iterate in public."
+      "Prototype with collaborators early, then iterate in public.",
     ],
     stats: [
       { value: "05", caption: "multi-discipline showcases to feature the full studio range." },
-      { value: "12", caption: "immersive collaborations with museums, collectives, or indie games." }
+      { value: "12", caption: "immersive collaborations with museums, collectives, or indie games." },
     ],
     timeline: [
       timelineEntries[0],
       { year: "2023", description: "Curated “Golden Hour Study” — cross-medium screening & gallery pairing." },
-      timelineEntries[2]
+      timelineEntries[2],
     ],
     links: [
       { label: "Instagram", href: "https://instagram.com/your-handle" },
       { label: "Portfolio Hub", href: "/" },
-      { label: "Contact", href: "mailto:hello@yourstudio.com" }
-    ]
+      { label: "Contact", href: "mailto:hello@yourstudio.com" },
+    ],
   },
   {
     id: "music",
@@ -50,7 +52,7 @@ const aboutSections = [
     threads: [
       "List active releases or live performances you want to spotlight.",
       "Describe how you build palettes — hardware, software, field recordings.",
-      "Mention collaborators, guest vocalists, or commissions worth noting."
+      "Mention collaborators, guest vocalists, or commissions worth noting.",
     ],
     bio: "Add a short origin story: how the first tracks emerged, the genres you hybridize, and the types of scores you love crafting.",
     approach:
@@ -58,15 +60,15 @@ const aboutSections = [
     approachNotes: [
       "Map each project to a color palette and tempo landscape.",
       "Prototype spatial mixes before final mastering.",
-      "Blend modular synths with raw voice and acoustic textures."
+      "Blend modular synths with raw voice and acoustic textures.",
     ],
     stats: achievements.slice(0, 2),
     timeline: timelineEntries.slice(0, 2),
     links: [
       { label: "Spotify", href: "https://open.spotify.com/artist/your-handle" },
       { label: "Bandcamp", href: "https://bandcamp.com/your-handle" },
-      { label: "Live Sets", href: "/music" }
-    ]
+      { label: "Live Sets", href: "/music" },
+    ],
   },
   {
     id: "art",
@@ -78,28 +80,29 @@ const aboutSections = [
     threads: [
       "Outline upcoming exhibitions, print drops, or installations.",
       "Call out the materials or processes that define your current body of work.",
-      "Hint at any crossovers with music, writing, or interactive pieces."
+      "Hint at any crossovers with music, writing, or interactive pieces.",
     ],
     bio: "Place a note about the mediums — oil, ink, projection — and the influences guiding your visual language right now.",
-    approach: "Explain how you sketch by hand, digitize fragments, and fuse them with procedural textures to finish the pieces.",
+    approach:
+      "Explain how you sketch by hand, digitize fragments, and fuse them with procedural textures to finish the pieces.",
     approachNotes: [
       "Start with tactile paper studies before any screen time.",
       "Prototype color passes in small multiples to test light.",
-      "Photograph each layer for archival process reels."
+      "Photograph each layer for archival process reels.",
     ],
     stats: [
       { value: "08", caption: "gallery installations exploring light, shadow, and projection." },
-      { value: "24", caption: "mixed-media works in the current collection." }
+      { value: "24", caption: "mixed-media works in the current collection." },
     ],
     timeline: [
       { year: "2024", description: "Mounted “Spectrum City” in collaboration with local light designers." },
-      { year: "2021", description: "Released limited risograph run “Velvet Storm Studies.”" }
+      { year: "2021", description: "Released limited risograph run “Velvet Storm Studies.”" },
     ],
     links: [
       { label: "Art Portfolio", href: "/art" },
       { label: "Prints", href: "/art#prints" },
-      { label: "Instagram", href: "https://instagram.com/your-handle" }
-    ]
+      { label: "Instagram", href: "https://instagram.com/your-handle" },
+    ],
   },
   {
     id: "photos",
@@ -111,7 +114,7 @@ const aboutSections = [
     threads: [
       "Highlight ongoing photo stories or publications.",
       "Mention the gear, film stocks, or techniques shaping the aesthetic.",
-      "Note how photography feeds into the rest of the practice."
+      "Note how photography feeds into the rest of the practice.",
     ],
     bio: "Talk about the cameras you trust, the film stock you swear by, and the night walks that shape these frames.",
     approach:
@@ -119,21 +122,21 @@ const aboutSections = [
     approachNotes: [
       "Shoot parallel film and digital to blend grit and clarity.",
       "Archive color palettes to inspire painting and motion work.",
-      "Pair each series with short written vignettes."
+      "Pair each series with short written vignettes.",
     ],
     stats: [
       { value: "18", caption: "urban night photosets published over the past three years." },
-      { value: "04", caption: "zines released with poetry + photo pairings." }
+      { value: "04", caption: "zines released with poetry + photo pairings." },
     ],
     timeline: [
       { year: "2024", description: "Premiered “Afterglow Atlas” photo essay at Micro Gallery." },
-      { year: "2022", description: "Documented “Signal Bloom” residency in daily photo dispatches." }
+      { year: "2022", description: "Documented “Signal Bloom” residency in daily photo dispatches." },
     ],
     links: [
       { label: "Photo Archive", href: "/photos" },
       { label: "Latest Zine", href: "/photos#zine" },
-      { label: "Medium Essays", href: "https://medium.com/@your-handle" }
-    ]
+      { label: "Medium Essays", href: "https://medium.com/@your-handle" },
+    ],
   },
   {
     id: "poems",
@@ -145,7 +148,7 @@ const aboutSections = [
     threads: [
       "Include where poems live: chapbooks, zines, performances.",
       "Explain the themes you explore and how they echo across other mediums.",
-      "Cue upcoming readings, collaborations, or releases."
+      "Cue upcoming readings, collaborations, or releases.",
     ],
     bio: "Outline how journaling, spoken word, or collaborative readings weave into the studio practice.",
     approach:
@@ -153,21 +156,21 @@ const aboutSections = [
     approachNotes: [
       "Let poems start as voice memos before refining text.",
       "Pair each stanza with a supporting visual or sound cue.",
-      "Release chapbooks alongside intimate listening sessions."
+      "Release chapbooks alongside intimate listening sessions.",
     ],
     stats: [
       { value: "03", caption: "chapbooks in circulation blending text, photo, and augmented layers." },
-      { value: "11", caption: "live readings scored with ambient improvisation." }
+      { value: "11", caption: "live readings scored with ambient improvisation." },
     ],
     timeline: [
       { year: "2023", description: "Released “Signal Bloom” interactive poetry zine with AR overlays." },
-      { year: "2021", description: "Hosted a poetry/sound salon series in partnership with Local Loft." }
+      { year: "2021", description: "Hosted a poetry/sound salon series in partnership with Local Loft." },
     ],
     links: [
       { label: "Poetry Library", href: "/poems" },
       { label: "Substack", href: "https://substack.com/@your-handle" },
-      { label: "Spoken Sets", href: "/poems#performances" }
-    ]
+      { label: "Spoken Sets", href: "/poems#performances" },
+    ],
   },
   {
     id: "graphics",
@@ -179,7 +182,7 @@ const aboutSections = [
     threads: [
       "Name recent client or self-initiated projects that exemplify the style.",
       "Reference tools, workflows, or accessibility principles you champion.",
-      "Point to case studies, documentation, or sandbox builds."
+      "Point to case studies, documentation, or sandbox builds.",
     ],
     bio: "Placeholder for the story behind your interface work — hybridizing retro OS nostalgia with modern accessibility.",
     approach:
@@ -187,40 +190,125 @@ const aboutSections = [
     approachNotes: [
       "Prototype in grayscale before adding color or texture.",
       "Document systems in living style guides for collaborators.",
-      "Blend typography studies with motion cues for clarity."
+      "Blend typography studies with motion cues for clarity.",
     ],
     stats: [
       { value: "18", caption: "design systems shipped for creative tech studios since 2020." },
-      { value: "06", caption: "experimental UI packs released for community use." }
+      { value: "06", caption: "experimental UI packs released for community use." },
     ],
     timeline: [
       { year: "2024", description: "Launched “Interface Hack.02” toolkit exploring adaptive layouts." },
-      { year: "2022", description: "Collaborated on inclusive dashboard redesigns for cultural institutions." }
+      { year: "2022", description: "Collaborated on inclusive dashboard redesigns for cultural institutions." },
     ],
     links: [
       { label: "Design Systems", href: "/graphics" },
       { label: "Figma Community", href: "https://figma.com/@your-handle" },
-      { label: "Case Studies", href: "/graphics#cases" }
-    ]
-  }
+      { label: "Case Studies", href: "/graphics#cases" },
+    ],
+  },
 ] as const;
+
 
 export default function AboutPage() {
   const [activeSection, setActiveSection] = useState(aboutSections[0].id);
-  const section = aboutSections.find((item) => item.id === activeSection) ?? aboutSections[0];
+  const section =
+    aboutSections.find((item) => item.id === activeSection) ?? aboutSections[0];
+
+  // Right-column animations only
+  const colStagger = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.08, delayChildren: 0.12 } },
+    exit: { transition: { staggerChildren: 0.06, staggerDirection: -1 } }
+  };
+  const cardFx = {
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: "easeInOut" } }
+  };
+
+  // Prebuild the five cards (so we can place them into two tracks)
+  const CardBio = (
+    <motion.aside className="about-window about-window-bio" variants={cardFx} key="bio">
+      <h3>Bio</h3>
+      <p>{section.bio}</p>
+    </motion.aside>
+  );
+
+  const CardApproach = (
+    <motion.aside className="about-window about-window-approach" variants={cardFx} key="approach">
+      <h3>Approach</h3>
+      <p>{section.approach}</p>
+      <ul>
+        {section.approachNotes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+    </motion.aside>
+  );
+
+  const CardHighlights = (
+    <motion.aside className="about-window about-window-stats" variants={cardFx} key="highlights">
+      <h3>Highlights</h3>
+      <ul>
+        {section.stats.map((item) => (
+          <li key={item.caption}>
+            <span>{item.value}</span>
+            <p>{item.caption}</p>
+          </li>
+        ))}
+      </ul>
+    </motion.aside>
+  );
+
+  const CardTimeline = (
+    <motion.aside className="about-window about-window-timeline" variants={cardFx} key="timeline">
+      <h3>Timeline</h3>
+      <ul>
+        {section.timeline.map((entry) => (
+          <li key={entry.year}>
+            <span>{entry.year}</span>
+            <p>{entry.description}</p>
+          </li>
+        ))}
+      </ul>
+    </motion.aside>
+  );
+
+  const CardLinks = (
+    <motion.aside className="about-window about-window-links" variants={cardFx} key="links">
+      <h3>Elsewhere</h3>
+      <ul>
+        {section.links.map((link) => (
+          <li key={link.label}>
+            <Link href={link.href} target="_blank" rel="noreferrer">
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </motion.aside>
+  );
+
+  // Balanced 2-track placement (no scrollbar, no clipping)
+  // Left track: 3 cards; Right track: 2 cards — visually weighted and tidy.
+  const leftTrack = [CardBio, CardHighlights, CardLinks];
+  const rightTrack = [CardApproach, CardTimeline];
 
   return (
     <section className="about-single">
-      <Link className="about-back" href="/">
+      <Link className="about-back" href=" / ">
         ← Back
       </Link>
+
       <div className="about-single-grid">
+        {/* LEFT — unchanged */}
         <div className="about-column about-column-left">
           <div className="about-eyebrow">About</div>
           <h2>{section.headline}</h2>
           <p>{section.description}</p>
         </div>
 
+        {/* CENTER — unchanged */}
         <div className="about-column about-column-center">
           <div className="about-portrait-panel">
             <div className="about-portrait-shell">
@@ -240,6 +328,7 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
+
           <nav className="about-switcher" aria-label="Primary disciplines">
             {aboutSections.map((item) => {
               const isActive = item.id === activeSection;
@@ -259,55 +348,50 @@ export default function AboutPage() {
           </nav>
         </div>
 
-        <div className="about-windows" aria-live="polite">
-          <aside className="about-window about-window-bio">
-            <h3>Bio</h3>
-            <p>{section.bio}</p>
-          </aside>
-          <aside className="about-window about-window-approach">
-            <h3>Approach</h3>
-            <p>{section.approach}</p>
-            <ul>
-              {section.approachNotes.map((note) => (
-                <li key={note}>{note}</li>
-              ))}
-            </ul>
-          </aside>
-          <aside className="about-window about-window-stats">
-            <h3>Highlights</h3>
-            <ul>
-              {section.stats.map((item) => (
-                <li key={item.caption}>
-                  <span>{item.value}</span>
-                  <p>{item.caption}</p>
-                </li>
-              ))}
-            </ul>
-          </aside>
-          <aside className="about-window about-window-timeline">
-            <h3>Timeline</h3>
-            <ul>
-              {section.timeline.map((entry) => (
-                <li key={entry.year}>
-                  <span>{entry.year}</span>
-                  <p>{entry.description}</p>
-                </li>
-              ))}
-            </ul>
-          </aside>
-          <aside className="about-window about-window-links">
-            <h3>Elsewhere</h3>
-            <ul>
-              {section.links.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} target="_blank" rel="noreferrer">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
+        {/* RIGHT — two fixed tracks, no scroll, animated */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={section.id + "-windows"}
+            className="about-windows"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "1.25rem",
+              height: "calc(100vh - 8rem)", // keeps within viewport
+              boxSizing: "border-box",
+              padding: "1.25rem 0 1.25rem 1rem"
+            }}
+          >
+            {/* Track A */}
+            <motion.div
+              variants={colStagger}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "1.25rem"
+              }}
+            >
+              {leftTrack}
+            </motion.div>
+
+            {/* Track B */}
+            <motion.div
+              variants={colStagger}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "1.25rem"
+              }}
+            >
+              {rightTrack}
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
