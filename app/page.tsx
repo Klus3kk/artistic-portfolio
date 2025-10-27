@@ -1,7 +1,15 @@
 "use client";
 
 import { Italiana } from "next/font/google";
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Delaunay } from "d3-delaunay";
 
@@ -18,7 +26,23 @@ const portalCategories = [
   { href: "/photos", title: "Photos" },
 ] as const;
 
-// --- Utility ---
+type DiagramCell = {
+  href: string;
+  title: string;
+  path: string;
+  label: { x: number; y: number };
+  area: number;
+};
+
+type PortalNodeEntry = {
+  path: SVGPathElement | null;
+  text: SVGTextElement | null;
+  hitbox: SVGCircleElement | null;
+};
+
+const MIN_NODE_HITBOX = 18;
+const MAX_NODE_HITBOX_RATIO = 1;
+
 const createRng = (seed: number) => {
   let value = seed % 2147483647;
   if (value <= 0) value += 2147483646;
@@ -28,174 +52,631 @@ const createRng = (seed: number) => {
   };
 };
 
-function polygonCentroid(points: [number, number][]): [number, number] {
-  let area = 0, x = 0, y = 0;
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const p1 = points[i], p2 = points[j];
-    const f = p1[0] * p2[1] - p2[0] * p1[1];
-    area += f;
-    x += (p1[0] + p2[0]) * f;
-    y += (p1[1] + p2[1]) * f;
+type PolygonMetrics = {
+  centroid: [number, number];
+  area: number;
+};
+
+const polygonMetrics = (points: Array<[number, number]>): PolygonMetrics => {
+  let area = 0;
+  let cx = 0;
+  let cy = 0;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % n];
+    const cross = x1 * y2 - x2 * y1;
+    area += cross;
+    cx += (x1 + x2) * cross;
+    cy += (y1 + y2) * cross;
   }
   area *= 0.5;
-  return [x / (6 * area), y / (6 * area)];
-}
+  if (Math.abs(area) < 1e-5) {
+    const sum = points.reduce<[number, number]>(
+      (acc, curr) => [acc[0] + curr[0], acc[1] + curr[1]],
+      [0, 0]
+    );
+    return {
+      centroid: [sum[0] / n, sum[1] / n],
+      area: 0,
+    };
+  }
+  return {
+    centroid: [cx / (6 * area), cy / (6 * area)],
+    area: Math.abs(area),
+  };
+};
+
+const polygonPathFromPoints = (points: Array<[number, number]>) =>
+  points
+    .map(
+      ([x, y], idx) => `${idx === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`
+    )
+    .join(" ") + "Z";
 
 export default function HomePage() {
-  const router = useRouter();
   const boardRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [cells, setCells] = useState<
-    { href: string; title: string; path: string; label: { x: number; y: number } }[]
-  >([]);
+  const animationRef = useRef<number | null>(null);
+  const pointerRef = useRef({ x: 0.5, y: 0.5, active: false });
+  const pointerEnergyRef = useRef(0);
+  const sizeRef = useRef({ width: 0, height: 0 });
+
+  const meshPathRef = useRef<SVGPathElement | null>(null);
+  const nodeRefs = useRef<Record<string, PortalNodeEntry>>({});
+  const delaunayRef = useRef<Delaunay | null>(null);
+  const voronoiRef = useRef<ReturnType<Delaunay["voronoi"]> | null>(null);
+  const svgBoundsRef = useRef({ width: 1, height: 1 });
+
+  const [svgBounds, setSvgBounds] = useState({ width: 1, height: 1 });
+
+  const ensureNodeEntry = useCallback((href: string) => {
+    if (!nodeRefs.current[href]) {
+      nodeRefs.current[href] = { path: null, text: null, hitbox: null };
+    }
+    return nodeRefs.current[href];
+  }, []);
+
+  useEffect(() => {
+    svgBoundsRef.current = svgBounds;
+  }, [svgBounds]);
+
+  const prefersStatic = useMemo(
+    () =>
+      typeof window !== "undefined"
+        ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        : false,
+    []
+  );
+  const router = useRouter();
 
   useLayoutEffect(() => {
     const board = boardRef.current;
-    const canvas = canvasRef.current;
-    if (!board || !canvas) return;
-    const ctx = canvas.getContext("2d")!;
+    if (!board) return;
 
-    // --- Initialize geometry ---
+    const TYPE_CATEGORY = 0;
+    const TYPE_SPOKE_INNER = 1;
+    const TYPE_SPOKE_OUTER = 2;
+    const TYPE_FRAME = 3;
+    const TYPE_DRIFT = 4;
+
     const rng = createRng(42);
-    const resize = () => {
+    const spokeCount = 1500;
+    const spokeLevels = [0.2, 0.5, 1.6] as const;
+    const framePositions: Array<[number, number]> = [
+      [0.5, 0],
+      [1, 0.3],
+      [1, 0.45],
+      [0.2, 1],
+      [0, 0.7],
+      [0, 0.2],
+      [0.15, 0],
+      [0.1, 1],
+      [0.5, 0],
+      [1, 0.3],
+      [1, 0.45],
+      [0.5, 0],
+      [1, 0.3],
+      [1, 0.45],
+    ];
+    const framePoints = framePositions.length;
+    const driftPoints = 16;
+
+    const pointerState = pointerRef.current;
+
+    board.style.setProperty("--cursor-active", "0");
+    board.style.setProperty("--cursor-x", "50%");
+    board.style.setProperty("--cursor-y", "50%");
+    board.style.setProperty("--cursor-energy", "0");
+    board.style.setProperty("--mesh-alpha", "0.52");
+
+    const handlePointerMove = (event: PointerEvent) => {
       const rect = board.getBoundingClientRect();
-      canvas.width = rect.width * devicePixelRatio;
-      canvas.height = rect.height * devicePixelRatio;
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      pointerState.x = Math.min(Math.max(x, 0), 1);
+      pointerState.y = Math.min(Math.max(y, 0), 1);
+      pointerState.active = true;
+      board.style.setProperty("--cursor-x", `${pointerState.x * 100}%`);
+      board.style.setProperty("--cursor-y", `${pointerState.y * 100}%`);
+      board.style.setProperty("--cursor-active", "1");
     };
-    resize();
-    window.addEventListener("resize", resize);
 
-    const width = board.clientWidth;
-    const height = board.clientHeight;
-    const totalPoints = 1200; // number of background nodes
-    const points: [number, number][] = [];
-    const velocities: [number, number][] = [];
+    const handlePointerLeave = () => {
+      pointerState.active = false;
+      pointerEnergyRef.current = 0;
+      board.style.setProperty("--cursor-active", "0");
+      board.style.setProperty("--cursor-energy", "0");
+    };
 
-    // place category anchors
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) * 0.32;
-    for (let i = 0; i < portalCategories.length; i++) {
-      const angle = (i / portalCategories.length) * Math.PI * 2 - Math.PI / 2;
-      const x = centerX + Math.cos(angle) * radius;
-      const y = centerY + Math.sin(angle) * radius;
-      points.push([x, y]);
-      velocities.push([0, 0]);
+    board.addEventListener("pointermove", handlePointerMove);
+    board.addEventListener("pointerdown", handlePointerMove);
+    board.addEventListener("pointerleave", handlePointerLeave);
+
+    const totalPoints =
+      portalCategories.length +
+      spokeCount * spokeLevels.length +
+      framePoints +
+      driftPoints;
+    const points = new Float64Array(totalPoints * 2);
+    const velocities = new Float64Array(totalPoints * 2);
+    const phaseOffsets = new Float64Array(totalPoints);
+    const baseAngles = new Float64Array(totalPoints);
+    const baseRadii = new Float64Array(totalPoints);
+    const speedScales = new Float64Array(totalPoints);
+    const pointTypes = new Uint8Array(totalPoints);
+    const perpX = new Float64Array(totalPoints);
+    const perpY = new Float64Array(totalPoints);
+    const baseX = new Float64Array(totalPoints);
+    const baseY = new Float64Array(totalPoints);
+    const spokeIds = new Int16Array(totalPoints);
+    const spokeProgress = new Float64Array(totalPoints);
+    spokeIds.fill(-1);
+
+    const updateSize = () => {
+      const rect = board.getBoundingClientRect();
+      sizeRef.current = {
+        width: rect.width || 1,
+        height: rect.height || 1,
+      };
+    };
+
+    const assignPoint = (idx: number, x: number, y: number) => {
+      points[idx * 2] = x;
+      points[idx * 2 + 1] = y;
+      baseX[idx] = x;
+      baseY[idx] = y;
+    };
+
+    const seedPoints = () => {
+      const { width, height } = sizeRef.current;
+      if (!width || !height) return;
+      const minDim = Math.min(width, height);
+      const diagRadius = Math.hypot(width, height) * 0.5;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      let index = 0;
+
+      const anchorRadius = minDim * 0.3;
+      for (let i = 0; i < portalCategories.length; i++, index++) {
+        pointTypes[index] = TYPE_CATEGORY;
+        const angle = (i / portalCategories.length) * Math.PI * 2 - Math.PI / 2;
+        const jitter = minDim * 0.028;
+        baseAngles[index] = angle;
+        baseRadii[index] = anchorRadius * (0.95 + rng() * 0.12);
+        phaseOffsets[index] = rng() * Math.PI * 2;
+        speedScales[index] = 0.65 + rng() * 0.38;
+        velocities[index * 2] = 0;
+        velocities[index * 2 + 1] = 0;
+        const px =
+          centerX + Math.cos(angle) * baseRadii[index] + (rng() - 0.5) * jitter;
+        const py =
+          centerY + Math.sin(angle) * baseRadii[index] + (rng() - 0.5) * jitter;
+        assignPoint(index, px, py);
+      }
+
+      const baseRotation = rng() * Math.PI * 2;
+      for (let spoke = 0; spoke < spokeCount; spoke++) {
+        const angle = baseRotation + (spoke / spokeCount) * Math.PI * 2;
+        const cosAngle = Math.cos(angle);
+        const sinAngle = Math.sin(angle);
+        const perpVecX = -sinAngle;
+        const perpVecY = cosAngle;
+
+        for (
+          let levelIndex = 0;
+          levelIndex < spokeLevels.length;
+          levelIndex++, index++
+        ) {
+          const level = spokeLevels[levelIndex] * (0.94 + rng() * 0.05);
+          const radius = diagRadius * level;
+          const lateralJitter = minDim * (0.008 + levelIndex * 0.004);
+          const alongJitter = minDim * 0.008;
+          const perpOffset = (rng() - 0.5) * lateralJitter;
+          const alongOffset = (rng() - 0.5) * alongJitter;
+          const px =
+            centerX + cosAngle * (radius + alongOffset) + perpVecX * perpOffset;
+          const py =
+            centerY + sinAngle * (radius + alongOffset) + perpVecY * perpOffset;
+          assignPoint(index, px, py);
+          pointTypes[index] =
+            levelIndex < spokeLevels.length - 1
+              ? TYPE_SPOKE_INNER
+              : TYPE_SPOKE_OUTER;
+          spokeProgress[index] =
+            spokeLevels.length > 1 ? levelIndex / (spokeLevels.length - 1) : 0;
+          baseAngles[index] = angle;
+          baseRadii[index] = radius;
+          phaseOffsets[index] = rng() * Math.PI * 2;
+          speedScales[index] = 0.45 + rng() * 0.64;
+          velocities[index * 2] = 0;
+          velocities[index * 2 + 1] = 0;
+          perpX[index] = perpVecX;
+          perpY[index] = perpVecY;
+          spokeIds[index] = spoke;
+        }
+      }
+
+      framePositions.forEach(([xRatio, yRatio]) => {
+        if (index >= totalPoints) return;
+        const px = width * xRatio;
+        const py = height * yRatio;
+        assignPoint(index, px, py);
+        pointTypes[index] = TYPE_FRAME;
+        phaseOffsets[index] = rng() * Math.PI * 2;
+        speedScales[index] = 0.24 + rng() * 0.28;
+        velocities[index * 2] = 0;
+        velocities[index * 2 + 1] = 0;
+        index += 1;
+      });
+
+      for (; index < totalPoints; index++) {
+        pointTypes[index] = TYPE_DRIFT;
+        const px = rng() * width;
+        const py = rng() * height;
+        assignPoint(index, px, py);
+        velocities[index * 2] = (rng() - 0.5) * 0.2;
+        velocities[index * 2 + 1] = (rng() - 0.5) * 0.2;
+        phaseOffsets[index] = rng() * Math.PI * 2;
+        speedScales[index] = 0.3 + rng() * 0.4;
+        perpX[index] = 0;
+        perpY[index] = 0;
+      }
+    };
+
+    const rebuildTriangulation = () => {
+      const { width, height } = sizeRef.current;
+      if (!width || !height) return;
+      const delaunay = new Delaunay(points);
+      delaunayRef.current = delaunay;
+      voronoiRef.current = delaunay.voronoi([0, 0, width, height]);
+    };
+
+    type DiagramSnapshot = {
+      meshPath: string | null;
+      cells: DiagramCell[];
+      width: number;
+      height: number;
+    };
+
+    const updateSvgElements = (
+      snapshot: DiagramSnapshot,
+      refreshMesh: boolean
+    ) => {
+      const { width, height } = snapshot;
+      const currentBounds = svgBoundsRef.current;
+      if (
+        Math.abs(currentBounds.width - width) > 0.5 ||
+        Math.abs(currentBounds.height - height) > 0.5
+      ) {
+        const nextBounds = { width, height };
+        svgBoundsRef.current = nextBounds;
+        setSvgBounds(nextBounds);
+      }
+
+      if (refreshMesh && snapshot.meshPath !== null) {
+        const meshPathElement = meshPathRef.current;
+        if (meshPathElement) {
+          meshPathElement.setAttribute("d", snapshot.meshPath);
+        }
+      }
+
+      const minDim = Math.min(width, height);
+      const maxRadius = Math.max(
+        MIN_NODE_HITBOX,
+        minDim * MAX_NODE_HITBOX_RATIO
+      );
+
+      snapshot.cells.forEach((cell) => {
+        const entry = ensureNodeEntry(cell.href);
+        if (entry.path) {
+          entry.path.setAttribute("d", cell.path);
+        }
+        if (entry.text) {
+          entry.text.setAttribute("x", cell.label.x.toFixed(1));
+          entry.text.setAttribute(
+            "y",
+            (cell.label.y - minDim * 0.006).toFixed(1)
+          );
+        }
+        if (entry.hitbox) {
+          entry.hitbox.setAttribute("cx", cell.label.x.toFixed(1));
+          entry.hitbox.setAttribute("cy", cell.label.y.toFixed(1));
+          const derivedRadius =
+            cell.area > 0
+              ? Math.sqrt(cell.area / Math.PI) * 0.24
+              : minDim * 0.03;
+          const radius = Math.max(
+            MIN_NODE_HITBOX,
+            Math.min(maxRadius, derivedRadius)
+          );
+          entry.hitbox.setAttribute("r", radius.toFixed(1));
+        }
+      });
+    };
+
+    const buildDiagram = (refreshMesh: boolean): DiagramSnapshot | null => {
+      const { width, height } = sizeRef.current;
+      const voronoi = voronoiRef.current;
+      if (!width || !height || !voronoi) return null;
+
+      voronoi.xmin = 0;
+      voronoi.ymin = 0;
+      voronoi.xmax = width;
+      voronoi.ymax = height;
+      voronoi.update();
+
+      const meshPath = refreshMesh ? voronoi.render() ?? "" : null;
+      const cells: DiagramCell[] = [];
+      portalCategories.forEach((category, index) => {
+        const polygon = voronoi.cellPolygon(index);
+        if (!polygon || polygon.length < 6) return;
+        const typed = polygon as Array<[number, number]>;
+        const { centroid, area } = polygonMetrics(typed);
+        const path = polygonPathFromPoints(typed);
+        cells.push({
+          ...category,
+          path,
+          label: { x: centroid[0], y: centroid[1] },
+          area,
+        });
+      });
+
+      return { meshPath, cells, width, height };
+    };
+
+    const pushDiagram = (refreshMesh: boolean) => {
+      const snapshot = buildDiagram(refreshMesh);
+      if (snapshot) {
+        updateSvgElements(snapshot, refreshMesh);
+      }
+    };
+
+    updateSize();
+    seedPoints();
+    rebuildTriangulation();
+    pushDiagram(true);
+
+    if (!prefersStatic) {
+      let lastFrame = 0;
+      let lastDiagramUpdate = 0;
+      let lastMeshUpdate = 0;
+      const animate = (time: number) => {
+        const { width, height } = sizeRef.current;
+        if (!width || !height) {
+          animationRef.current = requestAnimationFrame(animate);
+          return;
+        }
+
+        if (!lastFrame) lastFrame = time;
+        const deltaTime = Math.max(0.001, (time - lastFrame) / 1000);
+        lastFrame = time;
+
+        const t = time * 0.0019;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const minDim = Math.min(width, height);
+        const pointerStateCurrent = pointerRef.current;
+        const pointerActive = pointerStateCurrent.active;
+        const pointerX = pointerStateCurrent.x * width;
+        const pointerY = pointerStateCurrent.y * height;
+        const pointerFalloff = minDim * minDim * 0.2;
+        const pointerInfluenceCap = pointerActive ? 1 : 0;
+        let pointerHighlight = pointerEnergyRef.current * 0.92;
+
+        for (let i = 0; i < totalPoints; i++) {
+          const idx = i * 2;
+          const phase = phaseOffsets[i];
+          const angleBase = baseAngles[i];
+          const radiusBase = baseRadii[i];
+          const type = pointTypes[i];
+
+          if (type === TYPE_CATEGORY) {
+const breathing = 1 + Math.sin(t * 0.6 + phase) * 0.035;
+const swirl = Math.sin(t * 0.48 + phase * 1.1) * 0.12;
+
+            const angle = angleBase + swirl * 0.55;
+            const wobble = radiusBase * 0.05;
+            let nextX =
+              centerX +
+              Math.cos(angle) * radiusBase * breathing +
+              Math.cos(phase + t * 2.1) * wobble;
+            let nextY =
+              centerY +
+              Math.sin(angle) * radiusBase * breathing +
+              Math.sin(phase + t * 2.1) * wobble;
+            if (pointerActive) {
+              const dx = nextX - pointerX;
+              const dy = nextY - pointerY;
+              const drift = Math.exp(-(dx * dx + dy * dy) / pointerFalloff);
+              nextX += dx * 0.028 * drift;
+              nextY += dy * 0.028 * drift;
+              pointerHighlight = Math.max(
+                pointerHighlight,
+                drift * pointerInfluenceCap
+              );
+            }
+            points[idx] = nextX;
+            points[idx + 1] = nextY;
+          } else if (type === TYPE_SPOKE_INNER || type === TYPE_SPOKE_OUTER) {
+            const progress = spokeProgress[i];
+            const twistMagnitude = type === TYPE_SPOKE_INNER ? 0.1 : 0.15;
+            const radialMagnitude = type === TYPE_SPOKE_INNER ? 0.042 : 0.068;
+            const swayMagnitude = type === TYPE_SPOKE_INNER ? 0.0075 : 0.011;
+            const twist =
+              Math.sin(
+                t * (type === TYPE_SPOKE_INNER ? 0.58 : 0.44) +
+                  phase +
+                  progress * 3
+              ) * twistMagnitude;
+            const angle = angleBase + twist;
+            const radialPulse =
+              1 + Math.sin(t * 0.48 + phase + progress * 2.2) * radialMagnitude;
+            const sway =
+              Math.sin(t * 0.68 + phase + spokeIds[i] * 0.38 + progress * 3) *
+              minDim *
+              swayMagnitude;
+            const radius = radiusBase * radialPulse;
+            let nextX = centerX + Math.cos(angle) * radius + perpX[i] * sway;
+            let nextY = centerY + Math.sin(angle) * radius + perpY[i] * sway;
+            if (pointerActive) {
+              const dx = nextX - pointerX;
+              const dy = nextY - pointerY;
+              const drift = Math.exp(-(dx * dx + dy * dy) / pointerFalloff);
+              nextX += dx * 0.04 * drift;
+              nextY += dy * 0.04 * drift;
+              pointerHighlight = Math.max(
+                pointerHighlight,
+                drift * pointerInfluenceCap
+              );
+            }
+            points[idx] = nextX;
+            points[idx + 1] = nextY;
+          } else if (type === TYPE_FRAME) {
+            const basePx = baseX[i];
+            const basePy = baseY[i];
+            const tension = 1 + Math.sin(t * 0.33 + phase) * 0.042;
+            const pullX = centerX + (basePx - centerX) * tension;
+            const pullY = centerY + (basePy - centerY) * tension;
+            points[idx] = Math.min(Math.max(pullX, 0), width);
+            points[idx + 1] = Math.min(Math.max(pullY, 0), height);
+          } else if (type === TYPE_DRIFT) {
+            const accelX = Math.sin(t * 1.08 + phase) * 0.0014 * speedScales[i];
+            const accelY = Math.cos(t * 1.02 + phase) * 0.0014 * speedScales[i];
+            velocities[idx] += accelX * deltaTime * 60;
+            velocities[idx + 1] += accelY * deltaTime * 60;
+            points[idx] += velocities[idx];
+            points[idx + 1] += velocities[idx + 1];
+
+            if (points[idx] <= 2 || points[idx] >= width - 2) {
+              velocities[idx] *= -0.9;
+              points[idx] = Math.min(Math.max(points[idx], 2), width - 2);
+            }
+            if (points[idx + 1] <= 2 || points[idx + 1] >= height - 2) {
+              velocities[idx + 1] *= -0.9;
+              points[idx + 1] = Math.min(
+                Math.max(points[idx + 1], 2),
+                height - 2
+              );
+            }
+
+            velocities[idx] = Math.max(Math.min(velocities[idx], 0.22), -0.22);
+            velocities[idx + 1] = Math.max(
+              Math.min(velocities[idx + 1], 0.22),
+              -0.22
+            );
+          }
+        }
+
+        const now = time;
+        const diagramInterval = pointerActive ? 60 : 120;
+        const meshInterval = pointerActive ? 120 : 220;
+
+        const refreshMesh = now - lastMeshUpdate > meshInterval;
+        if (refreshMesh || now - lastDiagramUpdate > diagramInterval) {
+          pushDiagram(refreshMesh);
+          lastDiagramUpdate = now;
+          if (refreshMesh) lastMeshUpdate = now;
+        }
+
+        const currentEnergy = pointerEnergyRef.current;
+        const targetEnergy = pointerActive
+          ? Math.max(pointerHighlight, currentEnergy * 0.8)
+          : currentEnergy * 0.9;
+        const clampedEnergy = Math.min(1, targetEnergy);
+        pointerEnergyRef.current = clampedEnergy;
+        board.style.setProperty("--cursor-energy", clampedEnergy.toFixed(3));
+        board.style.setProperty(
+          "--mesh-alpha",
+          (0.12 + clampedEnergy * 0.36).toFixed(3)
+        );
+
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      pointerEnergyRef.current = 0;
+      board.style.setProperty("--cursor-energy", "0");
+      board.style.setProperty("--mesh-alpha", "0.22");
     }
 
-    // random drift points
-    for (let i = portalCategories.length; i < totalPoints; i++) {
-      points.push([Math.random() * width, Math.random() * height]);
-      velocities.push([(rng() - 0.5) * 0.4, (rng() - 0.5) * 0.4]);
-    }
-
-    // --- precompute category polygons ---
-    const delaunay = Delaunay.from(points);
-    const voronoi = delaunay.voronoi([0, 0, width, height]);
-    const categoryCells = portalCategories.map((c, i) => {
-      const polygon = voronoi.cellPolygon(i) as [number, number][];
-      const centroid = polygonCentroid(polygon);
-      const path =
-        polygon.map(([x, y], j) => `${j === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ") +
-        "Z";
-      return { ...c, path, label: { x: centroid[0], y: centroid[1] } };
+    const resizeObserver = new ResizeObserver(() => {
+      updateSize();
+      seedPoints();
+      rebuildTriangulation();
+      pushDiagram(true);
     });
-    setCells(categoryCells);
-
-    // --- animation ---
-    const animate = (time: number) => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.lineWidth = 1.1;
-      ctx.strokeStyle = "rgba(73, 35, 21, 0.26)";
-
-      // drift motion
-      for (let i = portalCategories.length; i < totalPoints; i++) {
-        let [x, y] = points[i];
-        let [vx, vy] = velocities[i];
-        x += vx;
-        y += vy;
-        if (x < 0 || x > width) vx *= -1;
-        if (y < 0 || y > height) vy *= -1;
-        velocities[i] = [vx, vy];
-        points[i] = [x, y];
-      }
-
-      const flat = delaunay.points;
-      for (let i = 0; i < points.length; i++) {
-        flat[2 * i] = points[i][0];
-        flat[2 * i + 1] = points[i][1];
-      }
-
-      const v = delaunay.voronoi([0, 0, width, height]);
-      for (let i = 0; i < totalPoints; i++) {
-        const poly = v.cellPolygon(i);
-        if (!poly) continue;
-        ctx.beginPath();
-        ctx.moveTo(poly[0][0], poly[0][1]);
-        for (let j = 1; j < poly.length; j++) ctx.lineTo(poly[j][0], poly[j][1]);
-        ctx.closePath();
-        ctx.stroke();
-      }
-
-      requestAnimationFrame(animate);
-    };
-    requestAnimationFrame(animate);
+    resizeObserver.observe(board);
 
     return () => {
-      window.removeEventListener("resize", resize);
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      delaunayRef.current = null;
+      voronoiRef.current = null;
+      resizeObserver.disconnect();
+      board.removeEventListener("pointermove", handlePointerMove);
+      board.removeEventListener("pointerdown", handlePointerMove);
+      board.removeEventListener("pointerleave", handlePointerLeave);
     };
-  }, []);
+  }, [prefersStatic, ensureNodeEntry]);
+
+  const viewBoxWidth = Math.max(1, svgBounds.width);
+  const viewBoxHeight = Math.max(1, svgBounds.height);
 
   return (
     <section className="portal">
       <div ref={boardRef} className="portal-board">
-        {/* background mesh */}
-        <canvas
-          ref={canvasRef}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            background:
-              "linear-gradient(140deg, #f5eed9 0%, #f8f0d3 55%, #f1e6c2 100%)",
-          }}
-        />
-        {/* interactive labels */}
         <svg
           className="portal-svg"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-          }}
+          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="none"
         >
-          {cells.map((cell, index) => (
+          <path ref={meshPathRef} className="portal-mesh" d="" />
+          {portalCategories.map((category, index) => (
             <g
-              key={cell.href}
               style={{ "--node-index": index } as NodeStyle}
-              className="portal-node"
+              key={category.href}
               tabIndex={0}
               role="link"
-              aria-label={cell.title}
-              onClick={() => router.push(cell.href)}
+              className="portal-node"
+              aria-label={category.title}
+              onClick={() => router.push(category.href)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  router.push(cell.href);
+                  router.push(category.href);
                 }
               }}
             >
-              <path className="portal-node__shape" d={cell.path} />
+              <circle
+                ref={(node) => {
+                  const entry = ensureNodeEntry(category.href);
+                  entry.hitbox = node;
+                }}
+                className="portal-node__hitbox"
+                cx="0"
+                cy="0"
+                r={MIN_NODE_HITBOX}
+              />
+              <path
+                ref={(node) => {
+                  const entry = ensureNodeEntry(category.href);
+                  entry.path = node;
+                }}
+                className="portal-node__shape"
+                d=""
+              />
               <text
+                ref={(node) => {
+                  const entry = ensureNodeEntry(category.href);
+                  entry.text = node;
+                }}
                 className="portal-node__title"
-                x={cell.label.x}
-                y={cell.label.y - 6}
-                textAnchor="middle"
+                x="0"
+                y="0"
               >
-                {cell.title}
+                {category.title}
               </text>
             </g>
           ))}
