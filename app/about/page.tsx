@@ -219,14 +219,6 @@ export default function AboutPage() {
           <div className="about-eyebrow">About</div>
           <h2>{section.headline}</h2>
           <p>{section.description}</p>
-          <div className="about-threads">
-            <h3>Focus threads</h3>
-            <ul>
-              {section.threads.map((thread) => (
-                <li key={thread}>{thread}</li>
-              ))}
-            </ul>
-          </div>
         </div>
 
         <div className="about-column about-column-center">
@@ -235,11 +227,18 @@ export default function AboutPage() {
               <span className="about-portrait-label">{section.label}</span>
               <span className="about-portrait-tagline">{section.tagline}</span>
               <span className="about-portrait-placeholder">Add your portrait</span>
+              <div className="about-portrait-text">
+                <p>
+                  Placeholder for your signature statement — the first-person snapshot you want people to read while the
+                  portrait sits in the spotlight.
+                </p>
+                <ul>
+                  {section.threads.slice(0, 2).map((thread) => (
+                    <li key={thread}>{thread}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <p className="about-portrait-note">
-              Drop a transparent PNG or looping video clip. Keep the background clean so the creamy gradient does the
-              heavy lifting.
-            </p>
           </div>
           <nav className="about-switcher" aria-label="Primary disciplines">
             {aboutSections.map((item) => {

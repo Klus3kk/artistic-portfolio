@@ -1341,43 +1341,6 @@ p {
   color: rgba(167, 120, 74, 0.7);
 }
 
-.about-threads {
-  background: rgba(255, 250, 240, 0.86);
-  border: 1px solid rgba(167, 120, 74, 0.2);
-  padding: var(--space-sm) var(--space-md);
-  display: grid;
-  gap: 0.5rem;
-}
-
-.about-threads h3 {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.72rem;
-  color: rgba(97, 66, 45, 0.78);
-}
-
-.about-threads ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.about-threads li {
-  position: relative;
-  padding-left: 1rem;
-  font-size: 0.9rem;
-}
-
-.about-threads li::before {
-  content: "—";
-  position: absolute;
-  left: 0;
-  color: rgba(167, 120, 74, 0.8);
-}
-
 .about-column-center {
   display: grid;
   justify-items: center;
@@ -1400,7 +1363,6 @@ p {
   aspect-ratio: 3 / 4;
   background: linear-gradient(180deg, rgba(106, 78, 56, 0.92), rgba(214, 170, 120, 0.5));
   display: grid;
-  place-items: center;
   padding: 1.2rem;
   color: rgba(255, 245, 232, 0.82);
   letter-spacing: 0.18em;
@@ -1435,9 +1397,11 @@ p {
 }
 
 .about-portrait-placeholder {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   z-index: 1;
-  text-align: center;
 }
 
 .about-portrait-note {
@@ -1546,23 +1510,24 @@ p {
 }
 
 .about-window-bio {
-  transform: translateX(6%);
+  margin-left: 6%;
 }
 
 .about-window-approach {
-  transform: translateX(-4%);
+  margin-left: -4%;
 }
 
 .about-window-stats {
-  transform: translateX(10%);
+  margin-left: 8%;
 }
 
 .about-window-timeline {
-  transform: translateX(-2%);
+  margin-left: -2%;
 }
 
 .about-window-links {
-  transform: translateX(5%);
+  margin-left: 5%;
+  margin-bottom: 0;
 }
 
 .about-window h3 {
@@ -1780,4 +1745,41 @@ p {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+.about-portrait-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: end;
+  gap: 0.6rem;
+  padding: clamp(1.4rem, 3vw, 2rem);
+  background: linear-gradient(0deg, rgba(12, 7, 15, 0.55), rgba(12, 7, 15, 0));
+  color: rgba(255, 245, 232, 0.86);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.about-portrait-text p {
+  margin: 0;
+}
+
+.about-portrait-text ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.about-portrait-text li {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 0.85rem;
+}
+
+.about-portrait-text li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: rgba(255, 245, 232, 0.6);
 }
